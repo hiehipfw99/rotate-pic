@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
+<title>旋转图片</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%;
+    background: #111;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  #pic {
+    width: 80vw;
+    max-width: 420px;
+    height: auto;
+    will-change: transform;
+    transform: rotate(0deg);
+    pointer-events: none;
+  }
+  #hint {
+    position: fixed;
+    left: 50%; bottom: 30px;
+    transform: translateX(-50%);
+    color: #4af;
+    font-size: 15px;
+    padding: 10px 20px;
+    border: 1px solid #4af;
+    border-radius: 30px;
+    background: rgba(68,170,255,.1);
+  }
+  #hint.hidden { display: none; }
+</style>
+</head>
+<body>
+<img id="pic" src="IMG_20261004_192411.jpg" alt="图片">
+<div id="hint">点击屏幕开始</div>
+<script>
+(function () {
+  const pic  = document.getElementById('pic');
+  const hint = document.getElementById('hint');
+  let targetAngle = 0;
+  let currentAngle = 0;
+  let running = false;
+
+  function onOrientation(e) {
+    const gamma = e.gamma || 0;
+    const g = Math.abs(gamma) < 1.5 ? 0 : gamma;
+    targetAngle = g;   // 如果想反向转，改成 targetAngle = -g;
+  }
+
+  function loop() {
+    if (!running) return;
+    const k = 0.15;
+    currentAngle += (targetAngle - currentAngle) * k;
+    pic.style.transform = 'rotate(' + currentAngle.toFixed(2) + 'deg)';
+    requestAnimationFrame(loop);
+  }
+
+  function start() {
+    if (running) return;
+    running = true;
+    hint.classList.add('hidden');
+    window.addEventListener('deviceorientation', onOrientation, true);
+    requestAnimationFrame(loop);
+  }
+
+  function requestPermissionAndStart() {
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function') {
+      DeviceOrientationEvent.requestPermission()
+        .then(res => {
+          if (res === 'granted') start();
+          else alert('未授权方向传感器，图片无法旋转');
+        })
+        .catch(() => alert('传感器授权失败，请用 Safari 打开'));
+    } else {
+      start();
+    }
+  }
+
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  if (isIOS) {
+    document.body.addEventListener('click', requestPermissionAndStart, { once: true });
+  } else {
+    start();
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      running = false;
+      window.removeEventListener('deviceorientation', onOrientation, true);
+    } else {
+      start();
+    }
+  });
+})();
+</script>
+</body>
+</html>
